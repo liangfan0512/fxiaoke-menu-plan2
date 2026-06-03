@@ -1,0 +1,3952 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菜单优化（方案一）- 更新版</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="comparison.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { min-width: 1180px; }
+        .app-shell { height: 100vh; background: #f1f3f8; overflow: hidden; }
+        .view-tabs {
+            position: fixed; top: 14px; left: 50%; z-index: 1300; transform: translateX(-50%);
+            display: flex; gap: 4px; padding: 4px; border: 1px solid #e4e7ed; border-radius: 8px;
+            background: rgba(255,255,255,.96); box-shadow: 0 8px 24px rgba(48,49,51,.08);
+        }
+        .view-tab { height: 32px; min-width: 108px; padding: 0 14px; border: 0; border-radius: 5px; background: transparent; color: #606266; cursor: pointer; font-size: 13px; }
+        .view-tab.active { background: #ff8300; color: #fff; box-shadow: 0 3px 8px rgba(255,131,0,.22); }
+        .demo-view { display: none; height: 100vh; }
+        .demo-view.active { display: flex; }
+        .plan-view { --sidebar-width: 248px; }
+        .compare-view { --sidebar-width: 300px; }
+        .plan-badge { flex: 0 0 auto; padding: 2px 6px; border-radius: 4px; background: #fef4e5; color: #ff8300; font-size: 12px; font-weight: 500; }
+        .brand { min-width: 0; display: flex; align-items: center; gap: 8px; }
+        .brand-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .top-header { height: 60px; padding: 0 28px; background: rgba(255,255,255,.42); border-bottom: 1px solid rgba(228,231,237,.54); }
+        .header-left { margin-right: auto; color: #606266; font-size: 13px; }
+        .header-right { gap: 14px; }
+        .language-toggle { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 10px; border: 1px solid #dcdfe6; border-radius: 17px; background: #fff; color: #303133; font: inherit; font-size: 13px; cursor: pointer; box-shadow: 0 2px 8px rgba(48,49,51,.06); }
+        .language-toggle i { color: #ff8300; font-size: 18px; }
+        .language-toggle:hover, .language-toggle:focus-visible { border-color: rgba(255,131,0,.55); color: #ff8300; outline: none; box-shadow: 0 0 0 3px rgba(255,131,0,.1); }
+        .dashboard { padding: 30px 34px 34px; }
+        .page-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+        .page-title h2 { font-size: 22px; font-weight: 600; }
+        .source-pill { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid #e4e7ed; border-radius: 15px; background: #fff; color: #606266; font-size: 12px; }
+        .source-pill i { color: #67c23a; font-size: 16px; }
+        .overview-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 16px; }
+        .overview-card { min-height: 116px; padding: 18px 20px; border: 1px solid #ebeef5; border-radius: 6px; background: #fff; box-shadow: 0 1px 3px rgba(48,49,51,.03); }
+        .overview-card:nth-child(1) { border-top: 3px solid #409eff; }
+        .overview-card:nth-child(2) { border-top: 3px solid #67c23a; }
+        .overview-card:nth-child(3) { border-top: 3px solid #ff8300; }
+        .overview-card:nth-child(4) { border-top: 3px solid #7c5cff; }
+        .overview-card .eyebrow { margin-bottom: 10px; color: #909399; font-size: 12px; }
+        .overview-card strong { display: block; color: #303133; font-size: 26px; font-weight: 600; line-height: 1.1; }
+        .overview-card span { display: block; margin-top: 8px; color: #606266; font-size: 13px; line-height: 1.45; }
+        .content-grid { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(320px,.8fr); gap: 18px; }
+        .panel { background: #fff; border: 1px solid #ebeef5; border-radius: 6px; padding: 20px; box-shadow: 0 1px 3px rgba(48,49,51,.03); }
+        .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .panel-title h3 { color: #303133; font-size: 15px; font-weight: 600; }
+        .panel-title i { color: #ff8300; font-size: 18px; }
+        .path-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 12px; list-style: none; }
+        .path-list li { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 8px 10px; color: #606266; background: #fafafa; border: 1px solid #f0f2f5; border-radius: 4px; font-size: 13px; }
+        .path-list i { color: #ff8300; font-size: 16px; }
+        .coverage-list { display: grid; gap: 12px; }
+        .coverage-row { display: grid; grid-template-columns: 116px 1fr auto; align-items: center; gap: 10px; color: #606266; font-size: 13px; }
+        .coverage-track { height: 8px; overflow: hidden; border-radius: 4px; background: #edf0f5; }
+        .coverage-bar { height: 100%; border-radius: inherit; background: linear-gradient(90deg,#409eff 0%,#67c23a 100%); }
+        .hint-text { margin-top: 14px; color: #909399; font-size: 12px; line-height: 1.6; }
+        .menu-empty, .no-results { padding: 24px 16px; color: #909399; font-size: 13px; }
+        .level-5 > .menu-li > .menu-item { padding-left: 78px; font-size: 12px; color: var(--text-regular); }
+        .compare-view .main-content { min-width: 460px; }
+        .compare-view .comparison-dash { padding-top: 86px; }
+        .compare-view #lines-overlay { position: fixed; }
+        html[data-lang="en"] body { font-family: Inter, "Helvetica Neue", Arial, sans-serif; }
+        html[data-lang="en"] .menu-item { font-size: 13px; }
+        html[data-lang="en"] .level-3 > .menu-li > .menu-item,
+        html[data-lang="en"] .level-4 > .menu-li > .menu-item,
+        html[data-lang="en"] .level-5 > .menu-li > .menu-item { font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <div class="view-tabs" aria-label="演示视图切换">
+            <button class="view-tab active" data-view="plan" type="button">优化菜单</button>
+            <button class="view-tab" data-view="compare" type="button">变更比对</button>
+        </div>
+
+        <div class="layout demo-view plan-view active" id="plan-view">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <button class="back-btn" data-i18n="back"><i class="ph ph-caret-left"></i> 返回</button>
+                    <div class="brand"><span class="brand-text" data-i18n="brand">管理后台</span><span class="plan-badge" data-i18n="planBadge">方案一</span></div>
+                </div>
+                <div class="search-box"><i class="ph ph-magnifying-glass"></i><input id="menu-search" type="text" placeholder="搜索菜单" autocomplete="off"></div>
+                <nav class="menu" id="dynamic-menu"></nav>
+                <div class="sidebar-footer"><i class="ph ph-arrows-in-simple"></i></div>
+            </aside>
+            <main class="main-content">
+                <header class="top-header">
+                    <div class="header-left" data-i18n="headerHint">基于方案一的中英双语菜单演示</div>
+                    <div class="header-right">
+                        <button class="language-toggle" id="language-toggle" type="button" aria-label="切换语言"><i class="ph ph-globe-hemisphere-east"></i><span id="language-label">中文</span></button>
+                        <div class="icon-btn"><i class="ph ph-chat-circle-dots"></i><span class="badge">3</span></div>
+                        <div class="icon-btn"><i class="ph ph-bell"></i></div>
+                        <div class="icon-btn"><i class="ph ph-question"></i></div>
+                        <div class="avatar"><img src="https://ui-avatars.com/api/?name=W&background=e4e7ed&color=606266" alt="Avatar"></div>
+                    </div>
+                </header>
+                <div class="dashboard">
+                    <div class="page-title">
+                        <div><h2 data-i18n="pageTitle">菜单优化（方案一）</h2><span class="subtitle" data-i18n="pageSubtitle">基于 Excel 生成的中英双语后台菜单演示</span></div>
+                        <div class="source-pill"><i class="ph ph-table"></i><span data-i18n="sourceText">来源：优化菜单（方案一）.xlsx</span></div>
+                    </div>
+                    <section class="dashboard-section overview-grid">
+                        <div class="overview-card"><div class="eyebrow" data-i18n="groupLabel">一级分类</div><strong id="group-count">--</strong><span data-i18n="groupDesc">方案一保留设置、管理、平台工具三条主路径。</span></div>
+                        <div class="overview-card"><div class="eyebrow" data-i18n="nodeLabel">菜单节点</div><strong id="node-count">--</strong><span data-i18n="nodeDesc">展示方案一 Excel 中全部菜单节点。</span></div>
+                        <div class="overview-card"><div class="eyebrow" data-i18n="leafLabel">末级入口</div><strong id="leaf-count">--</strong><span data-i18n="leafDesc">可直接点击选中的菜单入口数量。</span></div>
+                        <div class="overview-card"><div class="eyebrow" data-i18n="depthLabel">最大层级</div><strong id="depth-count">--</strong><span data-i18n="depthDesc">当前菜单树的最深层级。</span></div>
+                    </section>
+                    <section class="dashboard-section content-grid">
+                        <div class="panel"><div class="panel-title"><h3 data-i18n="topPathTitle">方案一主路径</h3><i class="ph ph-tree-structure"></i></div><ul class="path-list" id="top-path-list"></ul></div>
+                        <div class="panel"><div class="panel-title"><h3 data-i18n="coverageTitle">双语覆盖</h3><i class="ph ph-translate"></i></div>
+                            <div class="coverage-list">
+                                <div class="coverage-row"><span data-i18n="translatedLabel">已有英文</span><div class="coverage-track"><div class="coverage-bar" id="translated-bar"></div></div><strong id="translated-count">--</strong></div>
+                                <div class="coverage-row"><span data-i18n="fallbackLabel">中文回退</span><div class="coverage-track"><div class="coverage-bar" id="fallback-bar"></div></div><strong id="fallback-count">--</strong></div>
+                            </div>
+                            <p class="hint-text" data-i18n="coverageHint">英文列为空的菜单会在英文视图中继续显示中文，避免入口缺失。</p>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <div class="layout comparison-layout demo-view compare-view" id="compare-view">
+            <svg id="lines-overlay"></svg>
+            <aside class="sidebar" id="sidebar-hist"><div class="sidebar-header"><button class="back-btn"><i class="ph ph-caret-left"></i> 返回</button><div class="brand">管理后台 <span class="badge-title">历史菜单</span></div></div><div class="search-box"><i class="ph ph-magnifying-glass"></i><input id="hist-search" type="text" placeholder="搜索"></div><nav class="menu" id="menu-hist"></nav><div class="sidebar-footer"><i class="ph ph-arrows-in-simple"></i></div></aside>
+            <main class="main-content"><header class="top-header"><div class="header-right"><div class="icon-btn"><i class="ph ph-chat-circle-dots"></i><span class="badge">3</span></div><div class="icon-btn"><i class="ph ph-bell"></i></div><div class="icon-btn"><i class="ph ph-user"></i></div></div></header><div class="dashboard comparison-dash"><div class="page-title center-title"><h2>菜单优化（方案一）变更比对</h2><p class="subtitle mt-2">点击两侧高亮菜单，查看具体迁移变化节点连线</p></div><section class="dashboard-section mt-5 relativez"><div class="stats-grid comparison-stats"><div class="stat-card blue"><p>历史菜单节点</p><div class="stat-value"><span class="highlight" id="hist-node-total">--</span></div></div><div class="stat-card green"><p>方案一节点</p><div class="stat-value"><span class="highlight" id="plan-node-total">--</span></div></div></div></section><div class="diff-legend mt-5"><h4>图例说明：</h4><div class="legend-row"><span class="box color-moved"></span> 层级/位置变化 <span id="moved-total"></span></div><div class="legend-row"><span class="box color-added"></span> 新增菜单 <span id="added-total"></span></div><div class="legend-row"><span class="box color-deleted"></span> 移除菜单 <span id="deleted-total"></span></div></div></div></main>
+            <aside class="sidebar" id="sidebar-opt"><div class="sidebar-header"><button class="back-btn"><i class="ph ph-caret-left"></i> 返回</button><div class="brand">管理后台 <span class="badge-title opt-badge">方案一</span></div></div><div class="search-box"><i class="ph ph-magnifying-glass"></i><input id="opt-search" type="text" placeholder="搜索"></div><nav class="menu" id="menu-opt"></nav><div class="sidebar-footer"><i class="ph ph-arrows-in-simple"></i></div></aside>
+        </div>
+    </div>
+
+    <script>
+        const plan1MenuData = [
+  {
+    "zh": "设置",
+    "en": "Settings",
+    "translated": true,
+    "children": [
+      {
+        "zh": "管理首页",
+        "en": "Setup Home",
+        "translated": true
+      },
+      {
+        "zh": "配置向导",
+        "en": "Setup Assistant",
+        "translated": true
+      },
+      {
+        "zh": "企业设置",
+        "en": "Company Settings",
+        "translated": true,
+        "children": [
+          {
+            "zh": "企业信息",
+            "en": "Company Information",
+            "translated": true
+          },
+          {
+            "zh": "域名",
+            "en": "My Domain",
+            "translated": true
+          },
+          {
+            "zh": "语言设置",
+            "en": "Language Settings",
+            "translated": true
+          },
+          {
+            "zh": "区域设置",
+            "en": "Regions",
+            "translated": true
+          },
+          {
+            "zh": "财年设置",
+            "en": "Fiscal Year",
+            "translated": true
+          },
+          {
+            "zh": "货币设置",
+            "en": "Currencies",
+            "translated": true
+          },
+          {
+            "zh": "工作时间",
+            "en": "Business Hours",
+            "translated": true
+          },
+          {
+            "zh": "假期",
+            "en": "Holidays",
+            "translated": true
+          },
+          {
+            "zh": "系统偏好",
+            "en": "System Preferences",
+            "translated": true
+          },
+          {
+            "zh": "个性化推荐",
+            "en": "Recommendation Settings",
+            "translated": true
+          },
+          {
+            "zh": "员工使用分析",
+            "en": "Usage Analytics",
+            "translated": true
+          },
+          {
+            "zh": "强制通知设置",
+            "en": "Notification Settings",
+            "translated": true
+          },
+          {
+            "zh": "邮箱管理",
+            "en": "Email Settings",
+            "translated": true
+          },
+          {
+            "zh": "短信服务",
+            "en": "SMS Gateway",
+            "translated": true
+          },
+          {
+            "zh": "许可信息",
+            "en": "License Information",
+            "translated": true
+          },
+          {
+            "zh": "订阅提醒",
+            "en": "Expiration Alerts",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "安全设置",
+        "en": "Security",
+        "translated": true,
+        "children": [
+          {
+            "zh": "账号安全设置",
+            "en": "Account Security",
+            "translated": true
+          },
+          {
+            "zh": "通讯录隐私",
+            "en": "Directory Privacy",
+            "translated": true
+          },
+          {
+            "zh": "单点登录",
+            "en": "Single Sign-On",
+            "translated": true
+          },
+          {
+            "zh": "身份提供商",
+            "en": "Identity Provider",
+            "translated": true
+          },
+          {
+            "zh": "受信任设备",
+            "en": "Trusted Devices",
+            "translated": true
+          },
+          {
+            "zh": "水印设置",
+            "en": "Watermark Settings",
+            "translated": true
+          },
+          {
+            "zh": "合规性设置",
+            "en": "Compliance Settings",
+            "translated": true
+          },
+          {
+            "zh": "网络访问限制",
+            "en": "Network Access",
+            "translated": true
+          },
+          {
+            "zh": "代码安全设置",
+            "en": "Code Security",
+            "translated": true
+          },
+          {
+            "zh": "手机号隐私设置",
+            "en": "Mobile Number Privacy Settings",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "数据迁移",
+        "en": "Data Migration",
+        "translated": true
+      }
+    ]
+  },
+  {
+    "zh": "管理",
+    "en": "Management",
+    "translated": true,
+    "children": [
+      {
+        "zh": "组织架构",
+        "en": "Organization",
+        "translated": true,
+        "children": [
+          {
+            "zh": "用户",
+            "en": "Users",
+            "translated": true
+          },
+          {
+            "zh": "部门",
+            "en": "Departments",
+            "translated": true
+          },
+          {
+            "zh": "通讯录设置",
+            "en": "Directory Settings",
+            "translated": true
+          },
+          {
+            "zh": "通讯录隔离",
+            "en": "Directory Isolation",
+            "translated": true
+          },
+          {
+            "zh": "邀请审核",
+            "en": "Invitation Approval",
+            "translated": true
+          },
+          {
+            "zh": "多维度",
+            "en": "Multi-dimensional Permissions",
+            "translated": true
+          },
+          {
+            "zh": "多组织",
+            "en": "Multi-Organization",
+            "translated": true
+          },
+          {
+            "zh": "用户功能设置",
+            "en": "User Feature Settings",
+            "translated": true
+          },
+          {
+            "zh": "员工设备",
+            "en": "User Device",
+            "translated": true
+          },
+          {
+            "zh": "用户组",
+            "en": "User Group",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "角色权限",
+        "en": "Role Permissions",
+        "translated": true,
+        "children": [
+          {
+            "zh": "管理功能权限",
+            "en": "Management Function Permissions",
+            "translated": true
+          },
+          {
+            "zh": "业务功能权限",
+            "en": "Business Function Permissions",
+            "translated": true
+          },
+          {
+            "zh": "分管小组",
+            "en": "Delegated Administration Groups",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "数据权限",
+        "en": "Data Permissions",
+        "translated": true,
+        "children": [
+          {
+            "zh": "数据权限管理",
+            "en": "Data Permissions",
+            "translated": true
+          },
+          {
+            "zh": "数据权限查询",
+            "en": "Data Permission Query Tool",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "数据",
+        "en": "Data",
+        "translated": true,
+        "children": [
+          {
+            "zh": "全部客户",
+            "en": "All Accounts",
+            "translated": true
+          },
+          {
+            "zh": "迁移工具",
+            "en": "Mass Transfer Records",
+            "translated": true
+          },
+          {
+            "zh": "回收站",
+            "en": "Recycle Bin",
+            "translated": true
+          },
+          {
+            "zh": "数据清洗",
+            "en": "Data Cleansing",
+            "translated": true
+          },
+          {
+            "zh": "数据初始化",
+            "en": "Data Reset",
+            "translated": true
+          },
+          {
+            "zh": "数据批量处理",
+            "en": "Data Loader",
+            "translated": true
+          },
+          {
+            "zh": "数据稽核",
+            "en": "Data Audit",
+            "translated": true
+          },
+          {
+            "zh": "数据归档",
+            "en": "Data Archiving",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "企业日志",
+        "en": "Logs",
+        "translated": true,
+        "children": [
+          {
+            "zh": "审计日志",
+            "en": "Audit Logs",
+            "translated": true
+          },
+          {
+            "zh": "登录日志",
+            "en": "Login History",
+            "translated": true
+          },
+          {
+            "zh": "异步任务监控",
+            "en": "Async Jobs",
+            "translated": true
+          },
+          {
+            "zh": "业务日志",
+            "en": "Business Logs",
+            "translated": true
+          },
+          {
+            "zh": "函数日志",
+            "en": "APL Logs",
+            "translated": true
+          },
+          {
+            "zh": "导入导出记录",
+            "en": "Import & Export Logs",
+            "translated": true
+          },
+          {
+            "zh": "流程日志",
+            "en": "Process Logs",
+            "translated": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "zh": "平台工具",
+    "en": "Platform Tools",
+    "translated": true,
+    "children": [
+      {
+        "zh": "应用管理",
+        "en": "App Manager",
+        "translated": true,
+        "children": [
+          {
+            "zh": "应用列表",
+            "en": "App List",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "功能设置",
+        "en": "Feature Settings",
+        "translated": true,
+        "children": [
+          {
+            "zh": "营销设置",
+            "en": "Marketing Settings",
+            "translated": true,
+            "children": [
+              {
+                "zh": "营销费用管理",
+                "en": "Marketing Expense Management",
+                "translated": true
+              },
+              {
+                "zh": "企业预算管理",
+                "en": "Company Budget Management",
+                "translated": true
+              },
+              {
+                "zh": "忠诚度计划管理",
+                "en": "Loyalty Program Management",
+                "translated": true
+              },
+              {
+                "zh": "渠道准入管理",
+                "en": "Channel Access Management",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "首页",
+                    "en": "Home",
+                    "translated": true
+                  },
+                  {
+                    "zh": "营销招募",
+                    "en": "Marketing Recruitment",
+                    "translated": true
+                  },
+                  {
+                    "zh": "注册审核",
+                    "en": "Registration Review",
+                    "translated": true
+                  },
+                  {
+                    "zh": "浏览规定",
+                    "en": "Browsing Rules",
+                    "translated": true
+                  },
+                  {
+                    "zh": "资质完善",
+                    "en": "Qualification Completion",
+                    "translated": true
+                  },
+                  {
+                    "zh": "协议签约",
+                    "en": "Agreement Signing",
+                    "translated": true
+                  }
+                ]
+              },
+              {
+                "zh": "营销方案",
+                "en": "Marketing Programs",
+                "translated": true
+              },
+              {
+                "zh": "会员管理",
+                "en": "Member Management",
+                "translated": true
+              },
+              {
+                "zh": "企微SCRM",
+                "en": "WeCom SCRM",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "SCRM配置向导",
+                    "en": "SCRM Setup Assistant",
+                    "translated": true
+                  },
+                  {
+                    "zh": "营销设置",
+                    "en": "Marketing Settings",
+                    "translated": true
+                  },
+                  {
+                    "zh": "企业微信设置",
+                    "en": "WeCom Settings",
+                    "translated": true
+                  },
+                  {
+                    "zh": "质检设置",
+                    "en": "Quality Inspection Settings",
+                    "translated": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "zh": "目标规则",
+            "en": "Target Rules",
+            "translated": true
+          },
+          {
+            "zh": "销售设置",
+            "en": "Sales Settings",
+            "translated": true,
+            "children": [
+              {
+                "zh": "销售 Agent 管理",
+                "en": "Sales Agent Management",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "客户互动Agent",
+                    "en": "Customer Engagement Agent",
+                    "translated": true
+                  },
+                  {
+                    "zh": "业务洞察Agent",
+                    "en": "Business Insights Agent",
+                    "translated": true
+                  },
+                  {
+                    "zh": "内部会议Agent",
+                    "en": "Internal Meeting Agent",
+                    "translated": true
+                  },
+                  {
+                    "zh": "方案生成器",
+                    "en": "Proposal Generator",
+                    "translated": true
+                  }
+                ]
+              },
+              {
+                "zh": "术语库",
+                "en": "Glossary",
+                "translated": true
+              },
+              {
+                "zh": "市场活动管理",
+                "en": "Campaign Management",
+                "translated": true
+              },
+              {
+                "zh": "工商企业搜索管理",
+                "en": "Business Entity Search Management",
+                "translated": true
+              },
+              {
+                "zh": "招投标管理",
+                "en": "Tender Management",
+                "translated": true
+              },
+              {
+                "zh": "线索和线索池管理",
+                "en": "Lead and Lead Pool Management",
+                "translated": true
+              },
+              {
+                "zh": "客户和公海管理",
+                "en": "Account and Public Pool Management",
+                "translated": true
+              },
+              {
+                "zh": "主数据管理",
+                "en": "Master Data Management",
+                "translated": true
+              },
+              {
+                "zh": "工商信息设置",
+                "en": "Business Information Settings",
+                "translated": true
+              },
+              {
+                "zh": "智能评分评级管理",
+                "en": "Intelligent Scoring and Rating Management",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "RFM规则",
+                    "en": "RFM Rules",
+                    "translated": true
+                  },
+                  {
+                    "zh": "行为积分",
+                    "en": "Behavior Points",
+                    "translated": true
+                  },
+                  {
+                    "zh": "线索智能打分管理",
+                    "en": "Intelligent Lead Scoring Management",
+                    "translated": true
+                  }
+                ]
+              },
+              {
+                "zh": "企业风险管理",
+                "en": "Enterprise Risk Management",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "评分规则",
+                    "en": "Scoring Rules",
+                    "translated": true
+                  },
+                  {
+                    "zh": "预警通知",
+                    "en": "Alert Notifications",
+                    "translated": true
+                  }
+                ]
+              },
+              {
+                "zh": "企业风险策略管理",
+                "en": "Enterprise Risk Policy Management",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "评级配置",
+                    "en": "Rating Configuration",
+                    "translated": true
+                  },
+                  {
+                    "zh": "自助评分",
+                    "en": "Self-Service Scoring",
+                    "translated": true
+                  },
+                  {
+                    "zh": "授信策略",
+                    "en": "Credit Policy",
+                    "translated": true
+                  },
+                  {
+                    "zh": "监控规则配置",
+                    "en": "Monitoring Rule Configuration",
+                    "translated": true
+                  }
+                ]
+              },
+              {
+                "zh": "商机管理",
+                "en": "Opportunity Management",
+                "translated": true
+              },
+              {
+                "zh": "预测规则设置",
+                "en": "Forecast Rule Settings",
+                "translated": true
+              },
+              {
+                "zh": "销售记录管理",
+                "en": "Sales Record Management",
+                "translated": true
+              },
+              {
+                "zh": "合同管理",
+                "en": "Contract Management",
+                "translated": true
+              },
+              {
+                "zh": "收入管理",
+                "en": "Revenue Management",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "应收配置",
+                    "en": "Accounts Receivable Configuration",
+                    "translated": true
+                  },
+                  {
+                    "zh": "回款配置",
+                    "en": "Payment Collection Configuration",
+                    "translated": true
+                  },
+                  {
+                    "zh": "账单配置",
+                    "en": "Billing Configuration",
+                    "translated": true
+                  }
+                ]
+              },
+              {
+                "zh": "项目管理",
+                "en": "Project Management",
+                "translated": true
+              },
+              {
+                "zh": "客户账户管理",
+                "en": "Customer Account Management",
+                "translated": true
+              },
+              {
+                "zh": "信用管理",
+                "en": "Credit Management",
+                "translated": true
+              },
+              {
+                "zh": "定价和交易管理",
+                "en": "Pricing and Transaction Management",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "首页",
+                    "en": "Home",
+                    "translated": true
+                  },
+                  {
+                    "zh": "商品/产品管理",
+                    "en": "Product Management",
+                    "translated": true
+                  },
+                  {
+                    "zh": "CPQ配置",
+                    "en": "CPQ Configuration",
+                    "translated": true
+                  },
+                  {
+                    "zh": "价格管理配置",
+                    "en": "Pricing Management Configuration",
+                    "translated": true
+                  },
+                  {
+                    "zh": "促销与返利配置",
+                    "en": "Promotion and Rebate Configuration",
+                    "translated": true
+                  },
+                  {
+                    "zh": "交易相关的单据配置",
+                    "en": "Transaction Document Configuration",
+                    "translated": true
+                  }
+                ]
+              },
+              {
+                "zh": "应付管理",
+                "en": "Accounts Payable Management",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "物流与库存",
+            "en": "Logistics & Inventory",
+            "translated": true,
+            "children": [
+              {
+                "zh": "发货",
+                "en": "Shipping",
+                "translated": true
+              },
+              {
+                "zh": "库存",
+                "en": "Inventory",
+                "translated": true
+              },
+              {
+                "zh": "物流服务",
+                "en": "Logistics Services",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "服务设置",
+            "en": "Service Settings",
+            "translated": true,
+            "children": [
+              {
+                "zh": "服务记录类型",
+                "en": "Service Record Types",
+                "translated": true
+              },
+              {
+                "zh": "服务人员查询类型",
+                "en": "Service Personnel Query Types",
+                "translated": true
+              },
+              {
+                "zh": "资产管理",
+                "en": "Asset Management",
+                "translated": true
+              },
+              {
+                "zh": "工单管理",
+                "en": "Work Order Management",
+                "translated": true
+              },
+              {
+                "zh": "服务通设置",
+                "en": "Service Connect Settings",
+                "translated": true
+              },
+              {
+                "zh": "发送记录",
+                "en": "Send Records",
+                "translated": true
+              },
+              {
+                "zh": "会话分析",
+                "en": "Conversation Analytics",
+                "translated": true
+              },
+              {
+                "zh": "智能机器人",
+                "en": "Intelligent Bot",
+                "translated": true
+              },
+              {
+                "zh": "呼叫中心",
+                "en": "Call Center",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "行业插件设置",
+            "en": "Industry Plugin Settings",
+            "translated": true,
+            "children": [
+              {
+                "zh": "医疗信息设置",
+                "en": "Medical Information Settings",
+                "translated": true
+              },
+              {
+                "zh": "外销管理",
+                "en": "Export Sales Management",
+                "translated": true
+              },
+              {
+                "zh": "快消业务插件",
+                "en": "FMCG Business Plugin",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "渠道设置",
+            "en": "Channel Settings",
+            "translated": true,
+            "children": [
+              {
+                "zh": "经销商管理",
+                "en": "Distributor Management",
+                "translated": true
+              },
+              {
+                "zh": "合作伙伴管理",
+                "en": "Partner Management",
+                "translated": true,
+                "children": [
+                  {
+                    "zh": "合作伙伴设置",
+                    "en": "Partner Settings",
+                    "translated": true
+                  }
+                ]
+              },
+              {
+                "zh": "渠道对账单",
+                "en": "Channel Statements",
+                "translated": true
+              },
+              {
+                "zh": "订货通管理",
+                "en": "Ordering Portal Management",
+                "translated": true
+              },
+              {
+                "zh": "渠道通路管理",
+                "en": "Channel Route Management",
+                "translated": true
+              },
+              {
+                "zh": "渠道数据上报",
+                "en": "Channel Data Reporting",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "协同办公设置",
+            "en": "Collaboration",
+            "translated": true,
+            "children": [
+              {
+                "zh": "待办栏目配置",
+                "en": "To-Do Center Settings",
+                "translated": true
+              },
+              {
+                "zh": "日志模板管理",
+                "en": "Report Settings",
+                "translated": true
+              },
+              {
+                "zh": "日志查询统计",
+                "en": "Report Analytics",
+                "translated": true
+              },
+              {
+                "zh": "日程管理",
+                "en": "Calendar Settings",
+                "translated": true
+              },
+              {
+                "zh": "日程同步",
+                "en": "Event Sync",
+                "translated": true
+              },
+              {
+                "zh": "分享管理",
+                "en": "Post Settings",
+                "translated": true
+              },
+              {
+                "zh": "任务与指令",
+                "en": "Task Analytics",
+                "translated": true
+              },
+              {
+                "zh": "公告管理",
+                "en": "Announcements",
+                "translated": true
+              },
+              {
+                "zh": "话题管理",
+                "en": "Topics",
+                "translated": true
+              },
+              {
+                "zh": "在线文档",
+                "en": "Online Docs",
+                "translated": true
+              },
+              {
+                "zh": "电子签章",
+                "en": "E-Signature",
+                "translated": true
+              },
+              {
+                "zh": "信息删除工具",
+                "en": "Feed Cleanup Tool",
+                "translated": true
+              },
+              {
+                "zh": "基本设置",
+                "en": "Chats Settings",
+                "translated": true
+              },
+              {
+                "zh": "业务群设置",
+                "en": "Business Group",
+                "translated": true
+              },
+              {
+                "zh": "服务号首页",
+                "en": "Service Account Home",
+                "translated": true
+              },
+              {
+                "zh": "服务号管理",
+                "en": "Service Account Settings",
+                "translated": true
+              },
+              {
+                "zh": "审批模板管理",
+                "en": "Approval Templates",
+                "translated": true
+              },
+              {
+                "zh": "审批角色管理",
+                "en": "Approval Roles",
+                "translated": true
+              },
+              {
+                "zh": "审批查询统计",
+                "en": "Approval Analytics",
+                "translated": true
+              },
+              {
+                "zh": "表格管理",
+                "en": "Form Management",
+                "translated": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "zh": "AI平台管理",
+        "en": "AI Platform",
+        "translated": true,
+        "children": [
+          {
+            "zh": "Agent Studio",
+            "en": "Agent Studio",
+            "translated": true,
+            "children": [
+              {
+                "zh": "Agents",
+                "en": "Agents",
+                "translated": true
+              },
+              {
+                "zh": "Agent 技能库",
+                "en": "Agent Skills",
+                "translated": true
+              },
+              {
+                "zh": "Agent 操作库",
+                "en": "Agent Actions",
+                "translated": true
+              },
+              {
+                "zh": "Agent 评测",
+                "en": "Agent Evaluation",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "AI流管理",
+            "en": "AI Flow Management",
+            "translated": true
+          },
+          {
+            "zh": "操作中心",
+            "en": "Action Center",
+            "translated": true
+          },
+          {
+            "zh": "提示词模板",
+            "en": "Prompt Template",
+            "translated": true
+          },
+          {
+            "zh": "语义检索索引",
+            "en": "Semantic Search Index",
+            "translated": true
+          },
+          {
+            "zh": "调用统计",
+            "en": "Usage",
+            "translated": true
+          },
+          {
+            "zh": "模型",
+            "en": "Model",
+            "translated": true
+          },
+          {
+            "zh": "信任层",
+            "en": "Trust Layer",
+            "translated": true
+          },
+          {
+            "zh": "审计和数据分析",
+            "en": "Audit and Analysis",
+            "translated": true
+          },
+          {
+            "zh": "AI助理",
+            "en": "AI Assistant",
+            "translated": true
+          },
+          {
+            "zh": "预测生成器",
+            "en": "Prediction Generator",
+            "translated": true,
+            "children": [
+              {
+                "zh": "数据集管理",
+                "en": "Data Set Management",
+                "translated": true
+              },
+              {
+                "zh": "模型管理",
+                "en": "Model",
+                "translated": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "zh": "对象与规则",
+        "en": "Objects & Rules",
+        "translated": true,
+        "children": [
+          {
+            "zh": "标准对象",
+            "en": "Standard Objects",
+            "translated": true
+          },
+          {
+            "zh": "自定义对象",
+            "en": "Custom Objects",
+            "translated": true
+          },
+          {
+            "zh": "大对象",
+            "en": "Big Objects",
+            "translated": true
+          },
+          {
+            "zh": "对象名称设置",
+            "en": "Object Name Settings",
+            "translated": true
+          },
+          {
+            "zh": "模板管理",
+            "en": "Templates",
+            "translated": true
+          },
+          {
+            "zh": "对象列表页自定义",
+            "en": "List View Layouts",
+            "translated": true
+          },
+          {
+            "zh": "全局对象布局",
+            "en": "Object Layout",
+            "translated": true
+          },
+          {
+            "zh": "智能表单",
+            "en": "Smart Forms",
+            "translated": true
+          },
+          {
+            "zh": "对象关系图",
+            "en": "Schema Viewer",
+            "translated": true
+          },
+          {
+            "zh": "标签",
+            "en": "Tags",
+            "translated": true
+          },
+          {
+            "zh": "通用选项集",
+            "en": "Global Option Sets",
+            "translated": true
+          },
+          {
+            "zh": "对象规则",
+            "en": "Object Rules",
+            "translated": true,
+            "children": [
+              {
+                "zh": "对象变更",
+                "en": "Object Change",
+                "translated": true
+              },
+              {
+                "zh": "转换规则",
+                "en": "Conversion Rules",
+                "translated": true
+              },
+              {
+                "zh": "映射规则",
+                "en": "Mapping Rules",
+                "translated": true
+              },
+              {
+                "zh": "评分规则",
+                "en": "Scoring Rules",
+                "translated": true
+              },
+              {
+                "zh": "业务规则",
+                "en": "Business Rules",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "对象插件",
+            "en": "Object Plugins",
+            "translated": true
+          },
+          {
+            "zh": "离线规则",
+            "en": "Offline Rules",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "翻译与本地化",
+        "en": "Translation",
+        "translated": true,
+        "children": [
+          {
+            "zh": "翻译工作台",
+            "en": "Translation Workbench",
+            "translated": true
+          },
+          {
+            "zh": "数据翻译设置",
+            "en": "Data Translation",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "流程与自动化",
+        "en": "Process & Automation",
+        "translated": true,
+        "children": [
+          {
+            "zh": "审批流",
+            "en": "Approval Processes",
+            "translated": true
+          },
+          {
+            "zh": "业务流",
+            "en": "Business Processes",
+            "translated": true
+          },
+          {
+            "zh": "工作流",
+            "en": "Workflows",
+            "translated": true
+          },
+          {
+            "zh": "流",
+            "en": "Flows",
+            "translated": true
+          },
+          {
+            "zh": "阶段推进器",
+            "en": "Pipeline",
+            "translated": true
+          },
+          {
+            "zh": "商机销售流程",
+            "en": "Opportunity Sales Processes",
+            "translated": true
+          },
+          {
+            "zh": "流程交接",
+            "en": "Handover",
+            "translated": true
+          },
+          {
+            "zh": "委托设置",
+            "en": "Delegation",
+            "translated": true
+          },
+          {
+            "zh": "常用意见",
+            "en": "Common Comments",
+            "translated": true
+          },
+          {
+            "zh": "全局配置",
+            "en": "Global Configuration",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "页面与体验",
+        "en": "User Interface",
+        "translated": true,
+        "children": [
+          {
+            "zh": "CRM视图迁移",
+            "en": "View Migration",
+            "translated": true
+          },
+          {
+            "zh": "主导航",
+            "en": "Navigation",
+            "translated": true
+          },
+          {
+            "zh": "自定义页面",
+            "en": "Custom Pages",
+            "translated": true
+          },
+          {
+            "zh": "CRM菜单",
+            "en": "CRM Menu",
+            "translated": true
+          },
+          {
+            "zh": "CRM首页",
+            "en": "CRM Home Pages",
+            "translated": true
+          },
+          {
+            "zh": "自定义菜单",
+            "en": "Custom Menu",
+            "translated": true
+          },
+          {
+            "zh": "APP启动图",
+            "en": "Splash Screen",
+            "translated": true
+          },
+          {
+            "zh": "侧边栏布局",
+            "en": "Sidebar Layout",
+            "translated": true
+          },
+          {
+            "zh": "自定义登录页",
+            "en": "Custom Login Pages",
+            "translated": true
+          },
+          {
+            "zh": "主题色",
+            "en": "Themes",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "低代码开发",
+        "en": "Custom Code",
+        "translated": true,
+        "children": [
+          {
+            "zh": "ModelJar管理",
+            "en": "ModelJar管理",
+            "translated": false
+          },
+          {
+            "zh": "自定义函数",
+            "en": "Custom APL",
+            "translated": true
+          },
+          {
+            "zh": "自定义组件",
+            "en": "Custom Components",
+            "translated": true
+          },
+          {
+            "zh": "自定义插件",
+            "en": "Custom Plugins",
+            "translated": true
+          },
+          {
+            "zh": "对象及字段API",
+            "en": "API Names/Schema API",
+            "translated": true
+          },
+          {
+            "zh": "开发者证书",
+            "en": "Certificates & Keys",
+            "translated": true
+          },
+          {
+            "zh": "开发Jar包管理",
+            "en": "Libraries",
+            "translated": true
+          },
+          {
+            "zh": "事件监听管理",
+            "en": "Event Triggers",
+            "translated": true
+          },
+          {
+            "zh": "开放接口",
+            "en": "OpenAPI",
+            "translated": true
+          },
+          {
+            "zh": "事件回调设置",
+            "en": "Webhooks",
+            "translated": true
+          },
+          {
+            "zh": "计划任务",
+            "en": "Scheduled Jobs",
+            "translated": true
+          },
+          {
+            "zh": "H5集成插件",
+            "en": "H5集成插件",
+            "translated": false
+          },
+          {
+            "zh": "函数监控",
+            "en": "APL Dashboard",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "集成与开放",
+        "en": "Integration & Open Platform",
+        "translated": true,
+        "children": [
+          {
+            "zh": "集成流编排",
+            "en": "Integration Flow Orchestration",
+            "translated": true
+          },
+          {
+            "zh": "授权配置",
+            "en": "Authorization Configuration",
+            "translated": true
+          },
+          {
+            "zh": "运行监控",
+            "en": "Operation Monitoring",
+            "translated": true
+          },
+          {
+            "zh": "连接器市场",
+            "en": "Connector Marketplace",
+            "translated": true
+          }
+        ]
+      },
+      {
+        "zh": "门户与渠道",
+        "en": "Portals & Channels",
+        "translated": true,
+        "children": [
+          {
+            "zh": "站点管理",
+            "en": "Site Management",
+            "translated": true,
+            "children": [
+              {
+                "zh": "域名管理",
+                "en": "域名管理",
+                "translated": false
+              },
+              {
+                "zh": "素材管理",
+                "en": "Domains",
+                "translated": true
+              },
+              {
+                "zh": "站点门户",
+                "en": "CMS",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "渠道门户",
+            "en": "Channel Portals",
+            "translated": true,
+            "children": [
+              {
+                "zh": "自定义首页",
+                "en": "自定义首页",
+                "translated": false
+              },
+              {
+                "zh": "自定义登录页",
+                "en": "Custom Homepages",
+                "translated": true
+              },
+              {
+                "zh": "自定义菜单页",
+                "en": "Custom Login Pages",
+                "translated": true
+              },
+              {
+                "zh": "Web端自定义页面",
+                "en": "Custom Menu Items",
+                "translated": true
+              },
+              {
+                "zh": "移动端自定义页面",
+                "en": "Web Custom Pages",
+                "translated": true
+              },
+              {
+                "zh": "导航设置",
+                "en": "App Custom Pages",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "互联管理",
+            "en": "External Management",
+            "translated": true,
+            "children": [
+              {
+                "zh": "互联用户",
+                "en": "互联用户",
+                "translated": false
+              },
+              {
+                "zh": "互联角色",
+                "en": "External Users",
+                "translated": true
+              },
+              {
+                "zh": "互联应用",
+                "en": "External Roles",
+                "translated": true
+              },
+              {
+                "zh": "互联设置",
+                "en": "External Apps",
+                "translated": true
+              },
+              {
+                "zh": "上游信息",
+                "en": "External Settings",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "微信服务号",
+            "en": "WeChat Service Accounts",
+            "translated": true
+          },
+          {
+            "zh": "微信小程序",
+            "en": "WeChat Mini Programs",
+            "translated": true
+          },
+          {
+            "zh": "互联组织管理",
+            "en": "External Organization Management",
+            "translated": true,
+            "children": [
+              {
+                "zh": "互联组织",
+                "en": "External Organizations",
+                "translated": true
+              },
+              {
+                "zh": "通用设置",
+                "en": "General Settings",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "互联更改集",
+            "en": "External Change Sets",
+            "translated": true,
+            "children": [
+              {
+                "zh": "部署管理",
+                "en": "Deployment Management",
+                "translated": true
+              },
+              {
+                "zh": "部署记录",
+                "en": "Deployment Records",
+                "translated": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "zh": "环境",
+        "en": "Environments",
+        "translated": true,
+        "children": [
+          {
+            "zh": "沙盒",
+            "en": "Sandboxes",
+            "translated": true
+          },
+          {
+            "zh": "更改集",
+            "en": "Change Sets",
+            "translated": true,
+            "children": [
+              {
+                "zh": "入站更改集",
+                "en": "Inbound Change Sets",
+                "translated": true
+              },
+              {
+                "zh": "出站更改集",
+                "en": "Outbound Change Sets",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "部署",
+            "en": "Deploy",
+            "translated": true,
+            "children": [
+              {
+                "zh": "部署设置",
+                "en": "Deployment Settings",
+                "translated": true
+              },
+              {
+                "zh": "部署状态",
+                "en": "Deployment Status",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "配置包",
+            "en": "Packages",
+            "translated": true,
+            "children": [
+              {
+                "zh": "配置包管理",
+                "en": "Package Manager",
+                "translated": true
+              },
+              {
+                "zh": "配置包安装",
+                "en": "Installed Packages",
+                "translated": true
+              }
+            ]
+          },
+          {
+            "zh": "系统资源概览",
+            "en": "System Overview",
+            "translated": true
+          },
+          {
+            "zh": "全局变量",
+            "en": "Global Variables",
+            "translated": true
+          }
+        ]
+      }
+    ]
+  }
+];
+        const historyMenuData = [
+  {
+    "title": "系统管理",
+    "children": [
+      {
+        "title": "管理首页"
+      },
+      {
+        "title": "企业设置",
+        "children": [
+          {
+            "title": "许可信息"
+          },
+          {
+            "title": "企业信息设置"
+          },
+          {
+            "title": "多组织设置"
+          },
+          {
+            "title": "员工功能设置"
+          },
+          {
+            "title": "工作时间"
+          },
+          {
+            "title": "假期"
+          },
+          {
+            "title": "手机号隐私设置"
+          },
+          {
+            "title": "个性化推荐设置"
+          },
+          {
+            "title": "域名管理"
+          },
+          {
+            "title": "企业安全设置",
+            "children": [
+              {
+                "title": "分管小组"
+              },
+              {
+                "title": "账号安全设置"
+              },
+              {
+                "title": "通讯录安全设置"
+              },
+              {
+                "title": "设备绑定"
+              },
+              {
+                "title": "单点登录"
+              },
+              {
+                "title": "水印设置"
+              },
+              {
+                "title": "合规性设置"
+              },
+              {
+                "title": "访问限制设置"
+              },
+              {
+                "title": "代码安全设置"
+              },
+              {
+                "title": "认证提供商"
+              }
+            ]
+          },
+          {
+            "title": "自定义登录页"
+          },
+          {
+            "title": "国家地区管理"
+          },
+          {
+            "title": "主题色"
+          },
+          {
+            "title": "到期提醒设置"
+          },
+          {
+            "title": "全局设置"
+          },
+          {
+            "title": "企业财年设置"
+          },
+          {
+            "title": "强制通知设置"
+          },
+          {
+            "title": "行业套件管理？"
+          }
+        ]
+      },
+      {
+        "title": "组织架构管理",
+        "children": [
+          {
+            "title": "部门与员工"
+          },
+          {
+            "title": "部门管理"
+          },
+          {
+            "title": "通讯录设置"
+          },
+          {
+            "title": "通讯录隔离"
+          },
+          {
+            "title": "已停用的"
+          },
+          {
+            "title": "邀请审核"
+          },
+          {
+            "title": "员工设备管理"
+          },
+          {
+            "title": "多维度管理"
+          },
+          {
+            "title": "企业微信对接？"
+          }
+        ]
+      },
+      {
+        "title": "角色权限管理",
+        "children": [
+          {
+            "title": "管理功能权限"
+          },
+          {
+            "title": "业务功能权限"
+          },
+          {
+            "title": "用户组"
+          }
+        ]
+      },
+      {
+        "title": "国际化",
+        "children": [
+          {
+            "title": "语言设置"
+          },
+          {
+            "title": "翻译工作台"
+          },
+          {
+            "title": "数据翻译设置"
+          },
+          {
+            "title": "多货币设置"
+          }
+        ]
+      },
+      {
+        "title": "企业日志",
+        "children": [
+          {
+            "title": "审计日志"
+          },
+          {
+            "title": "登录日志"
+          },
+          {
+            "title": "异步任务监控"
+          },
+          {
+            "title": "异常登录"
+          },
+          {
+            "title": "CRM日志"
+          },
+          {
+            "title": "函数日志"
+          },
+          {
+            "title": "导入导出记录"
+          },
+          {
+            "title": "函数监控"
+          },
+          {
+            "title": "流程日志"
+          },
+          {
+            "title": "员工使用分析"
+          }
+        ]
+      },
+      {
+        "title": "集成平台管理",
+        "children": [
+          {
+            "title": "数据集成流"
+          },
+          {
+            "title": "同步历史数据"
+          },
+          {
+            "title": "连接器"
+          },
+          {
+            "title": "接口管理"
+          },
+          {
+            "title": "模板中心"
+          },
+          {
+            "title": "监控看板"
+          },
+          {
+            "title": "告警管理"
+          },
+          {
+            "title": "数据大屏"
+          },
+          {
+            "title": "其他设置",
+            "children": [
+              {
+                "title": "k3_cloud"
+              }
+            ]
+          },
+          {
+            "title": "集成平台-OA待办"
+          },
+          {
+            "title": "集成代管"
+          }
+        ]
+      },
+      {
+        "title": "iPaaS管理",
+        "children": [
+          {
+            "title": "流程编排"
+          },
+          {
+            "title": "授权配置"
+          },
+          {
+            "title": "运行监控"
+          },
+          {
+            "title": "连接器开发"
+          },
+          {
+            "title": "连接器市场"
+          }
+        ]
+      },
+      {
+        "title": "系统配置引导"
+      },
+      {
+        "title": "系统迁移"
+      }
+    ]
+  },
+  {
+    "title": "CRM平台管理",
+    "children": [
+      {
+        "title": "对象管理",
+        "children": [
+          {
+            "title": "预设对象管理"
+          },
+          {
+            "title": "自定义对象管理"
+          },
+          {
+            "title": "大对象管理"
+          },
+          {
+            "title": "数据归档"
+          },
+          {
+            "title": "对象名称设置"
+          },
+          {
+            "title": "对象模板管理"
+          },
+          {
+            "title": "对象关系图"
+          },
+          {
+            "title": "智能表单"
+          },
+          {
+            "title": "标签管理"
+          },
+          {
+            "title": "通用选项集"
+          },
+          {
+            "title": "对象插件管理"
+          },
+          {
+            "title": "对象变更管理"
+          },
+          {
+            "title": "转换规则"
+          },
+          {
+            "title": "离线规则"
+          }
+        ]
+      },
+      {
+        "title": "流程管理",
+        "children": [
+          {
+            "title": "审批流程管理"
+          },
+          {
+            "title": "业务流程管理"
+          },
+          {
+            "title": "工作流管理"
+          },
+          {
+            "title": "流管理"
+          },
+          {
+            "title": "阶段推进器管理"
+          },
+          {
+            "title": "商机销售流程"
+          },
+          {
+            "title": "流程交接"
+          },
+          {
+            "title": "委托设置"
+          },
+          {
+            "title": "常用意见"
+          },
+          {
+            "title": "流程全局配置"
+          }
+        ]
+      },
+      {
+        "title": "数据权限管理"
+      },
+      {
+        "title": "业务规则管理",
+        "children": [
+          {
+            "title": "市场活动管理"
+          },
+          {
+            "title": "工商企业搜索管理"
+          },
+          {
+            "title": "销售 Agent 管理",
+            "children": [
+              {
+                "title": "方案生成器"
+              },
+              {
+                "title": "客户互动Agent"
+              },
+              {
+                "title": "业务洞察Agent"
+              },
+              {
+                "title": "内部会议"
+              }
+            ]
+          },
+          {
+            "title": "线索和线索池管理"
+          },
+          {
+            "title": "客户和公海管理"
+          },
+          {
+            "title": "商机管理"
+          },
+          {
+            "title": "术语库"
+          },
+          {
+            "title": "合作伙伴管理",
+            "children": [
+              {
+                "title": "合作伙伴设置"
+              }
+            ]
+          },
+          {
+            "title": "营销费用管理"
+          },
+          {
+            "title": "企业预算管理"
+          },
+          {
+            "title": "医疗信息设置"
+          },
+          {
+            "title": "忠诚度计划管理"
+          },
+          {
+            "title": "招投标管理"
+          },
+          {
+            "title": "日志管理"
+          },
+          {
+            "title": "渠道准入管理",
+            "children": [
+              {
+                "title": "首页"
+              },
+              {
+                "title": "营销招募"
+              },
+              {
+                "title": "注册审核"
+              },
+              {
+                "title": "浏览规定"
+              },
+              {
+                "title": "资质完善"
+              },
+              {
+                "title": "协议签约"
+              }
+            ]
+          },
+          {
+            "title": "日程管理"
+          },
+          {
+            "title": "查重设置"
+          },
+          {
+            "title": "公告管理"
+          },
+          {
+            "title": "对象映射规则"
+          },
+          {
+            "title": "邮箱管理"
+          },
+          {
+            "title": "报价单管理"
+          },
+          {
+            "title": "渠道对账单"
+          },
+          {
+            "title": "销售订单/退货单规则"
+          },
+          {
+            "title": "售中管理配置",
+            "children": [
+              {
+                "title": "首页"
+              },
+              {
+                "title": "商品/产品管理"
+              },
+              {
+                "title": "CPQ配置"
+              },
+              {
+                "title": "价格管理配置"
+              },
+              {
+                "title": "促销与返利配置"
+              },
+              {
+                "title": "交易相关的单据配置"
+              },
+              {
+                "title": "回款相关单据配置"
+              },
+              {
+                "title": "合同相关单据配置"
+              },
+              {
+                "title": "收入管理设置"
+              },
+              {
+                "title": "账单相关单据配置"
+              }
+            ]
+          },
+          {
+            "title": "企业风险管理",
+            "children": [
+              {
+                "title": "评分规则"
+              },
+              {
+                "title": "预警通知"
+              }
+            ]
+          },
+          {
+            "title": "预测规则设置"
+          },
+          {
+            "title": "目标规则"
+          },
+          {
+            "title": "价格管理"
+          },
+          {
+            "title": "销售记录管理"
+          },
+          {
+            "title": "服务记录类型"
+          },
+          {
+            "title": "服务人员查询类型"
+          },
+          {
+            "title": "全局变量"
+          },
+          {
+            "title": "客户账户管理"
+          },
+          {
+            "title": "信用管理"
+          },
+          {
+            "title": "对账单设置"
+          },
+          {
+            "title": "促销设置"
+          },
+          {
+            "title": "项目管理设置"
+          },
+          {
+            "title": "经销商管理"
+          },
+          {
+            "title": "库存管理"
+          },
+          {
+            "title": "资产管理"
+          },
+          {
+            "title": "发货与库存管理",
+            "children": [
+              {
+                "title": "发货管理"
+              },
+              {
+                "title": "库存管理"
+              }
+            ]
+          },
+          {
+            "title": "智能评分评级管理",
+            "children": [
+              {
+                "title": "RFM规则"
+              }
+            ]
+          },
+          {
+            "title": "打分器规则设置"
+          },
+          {
+            "title": "行为积分"
+          },
+          {
+            "title": "线索智能打分管理"
+          },
+          {
+            "title": "退换货管理"
+          },
+          {
+            "title": "业务规则配置"
+          },
+          {
+            "title": "工商信息设置"
+          },
+          {
+            "title": "快消业务插件"
+          },
+          {
+            "title": "CPQ管理"
+          },
+          {
+            "title": "工单管理"
+          },
+          {
+            "title": "应收应付管理"
+          },
+          {
+            "title": "主数据管理"
+          },
+          {
+            "title": "服务通设置"
+          },
+          {
+            "title": "物流查询服务"
+          },
+          {
+            "title": "商机2.0管理"
+          },
+          {
+            "title": "价目表设置"
+          },
+          {
+            "title": "画像洞察Agent"
+          },
+          {
+            "title": "销售简报设置"
+          },
+          {
+            "title": "营销方案"
+          },
+          {
+            "title": "发送记录"
+          },
+          {
+            "title": "会话分析"
+          }
+        ]
+      },
+      {
+        "title": "业务插件管理",
+        "children": [
+          {
+            "title": "会员管理"
+          },
+          {
+            "title": "智能机器人"
+          },
+          {
+            "title": "呼叫中心"
+          },
+          {
+            "title": "日程同步"
+          },
+          {
+            "title": "电子签章"
+          },
+          {
+            "title": "在线文档"
+          },
+          {
+            "title": "订货通管理"
+          },
+          {
+            "title": "外销管理"
+          },
+          {
+            "title": "短信服务"
+          },
+          {
+            "title": "企业风险策略管理",
+            "children": [
+              {
+                "title": "评级配置"
+              },
+              {
+                "title": "自助评分"
+              },
+              {
+                "title": "授信策略"
+              },
+              {
+                "title": "监控规则配置"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "待办中心配置"
+      },
+      {
+        "title": "界面定制管理",
+        "children": [
+          {
+            "title": "CRM视图迁移"
+          },
+          {
+            "title": "Web主导航"
+          },
+          {
+            "title": "APP主导航"
+          },
+          {
+            "title": "WEB自定义页面"
+          },
+          {
+            "title": "APP自定义页面"
+          },
+          {
+            "title": "CRM菜单"
+          },
+          {
+            "title": "CRM首页"
+          },
+          {
+            "title": "自定义菜单项"
+          },
+          {
+            "title": "APP启动图管理"
+          },
+          {
+            "title": "对象列表页自定义"
+          },
+          {
+            "title": "全局字段布局"
+          },
+          {
+            "title": "工作台侧边栏布局"
+          }
+        ]
+      },
+      {
+        "title": "定制开发平台",
+        "children": [
+          {
+            "title": "自定义APL代码"
+          },
+          {
+            "title": "APL测试"
+          },
+          {
+            "title": "APL测试历史"
+          },
+          {
+            "title": "自定义PWC组件"
+          },
+          {
+            "title": "自定义PWC插件"
+          },
+          {
+            "title": "对象及字段API"
+          },
+          {
+            "title": "ModelJar管理"
+          },
+          {
+            "title": "事件监听管理"
+          },
+          {
+            "title": "开发Jar包管理"
+          },
+          {
+            "title": "开发者证书"
+          },
+          {
+            "title": "OpenAPI"
+          },
+          {
+            "title": "事件回调设置"
+          },
+          {
+            "title": "计划任务"
+          },
+          {
+            "title": "第三方app集成"
+          }
+        ]
+      },
+      {
+        "title": "数据维护工具",
+        "children": [
+          {
+            "title": "全部客户"
+          },
+          {
+            "title": "迁移工具"
+          },
+          {
+            "title": "回收站"
+          },
+          {
+            "title": "清洗工具"
+          },
+          {
+            "title": "CRM初始化"
+          },
+          {
+            "title": "数据权限查询工具"
+          },
+          {
+            "title": "数据批量处理"
+          },
+          {
+            "title": "数据稽核工具"
+          }
+        ]
+      },
+      {
+        "title": "环境",
+        "children": [
+          {
+            "title": "沙盒管理"
+          },
+          {
+            "title": "更改集管理",
+            "children": [
+              {
+                "title": "部署规则"
+              },
+              {
+                "title": "入站更改集"
+              },
+              {
+                "title": "出站更改集"
+              }
+            ]
+          },
+          {
+            "title": "部署管理",
+            "children": [
+              {
+                "title": "互联部署状态"
+              },
+              {
+                "title": "部署状态"
+              }
+            ]
+          },
+          {
+            "title": "配置包",
+            "children": [
+              {
+                "title": "配置包管理"
+              },
+              {
+                "title": "配置包安装"
+              }
+            ]
+          },
+          {
+            "title": "系统资源概览"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "应用中心管理",
+    "children": [
+      {
+        "title": "应用列表"
+      },
+      {
+        "title": "企业服务号",
+        "children": [
+          {
+            "title": "服务号首页"
+          },
+          {
+            "title": "服务号管理"
+          }
+        ]
+      },
+      {
+        "title": "企信管理",
+        "children": [
+          {
+            "title": "概况"
+          },
+          {
+            "title": "基本设置"
+          },
+          {
+            "title": "定制企信群"
+          },
+          {
+            "title": "企信群助手"
+          }
+        ]
+      },
+      {
+        "title": "工作圈管理",
+        "children": [
+          {
+            "title": "概况"
+          },
+          {
+            "title": "管理角色配置"
+          },
+          {
+            "title": "分享管理"
+          },
+          {
+            "title": "公告管理"
+          },
+          {
+            "title": "日志管理",
+            "children": [
+              {
+                "title": "日志模板管理"
+              },
+              {
+                "title": "日志查询统计"
+              }
+            ]
+          },
+          {
+            "title": "审批管理",
+            "children": [
+              {
+                "title": "审批模板管理"
+              },
+              {
+                "title": "审批角色管理"
+              },
+              {
+                "title": "审批查询统计"
+              },
+              {
+                "title": "审批查询统计"
+              },
+              {
+                "title": "审批查询统计"
+              }
+            ]
+          },
+          {
+            "title": "话题管理"
+          },
+          {
+            "title": "任务与指令"
+          },
+          {
+            "title": "表格管理"
+          },
+          {
+            "title": "信息删除工具"
+          }
+        ]
+      },
+      {
+        "title": "工作汇报",
+        "children": [
+          {
+            "title": "工作汇报模板"
+          },
+          {
+            "title": "工作汇报统计"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "互联平台管理",
+    "children": [
+      {
+        "title": "站点管理",
+        "children": [
+          {
+            "title": "域名管理"
+          },
+          {
+            "title": "素材库"
+          },
+          {
+            "title": "站点门户"
+          }
+        ]
+      },
+      {
+        "title": "渠道门户",
+        "children": [
+          {
+            "title": "自定义首页"
+          },
+          {
+            "title": "自定义登录页"
+          },
+          {
+            "title": "自定义菜单页"
+          },
+          {
+            "title": "Web端自定义页面"
+          },
+          {
+            "title": "移动端自定义页面"
+          },
+          {
+            "title": "导航设置"
+          }
+        ]
+      },
+      {
+        "title": "互联管理",
+        "children": [
+          {
+            "title": "互联用户"
+          },
+          {
+            "title": "互联角色"
+          },
+          {
+            "title": "互联应用"
+          },
+          {
+            "title": "互联设置"
+          },
+          {
+            "title": "上游信息"
+          }
+        ]
+      },
+      {
+        "title": "微信服务号"
+      },
+      {
+        "title": "微信小程序"
+      },
+      {
+        "title": "互联组织管理",
+        "children": [
+          {
+            "title": "互联组织"
+          },
+          {
+            "title": "通用设置"
+          }
+        ]
+      },
+      {
+        "title": "互联更改集",
+        "children": [
+          {
+            "title": "部署互联更改集"
+          },
+          {
+            "title": "互联更改集部署状态"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "企微SCRM",
+    "children": [
+      {
+        "title": "SCRM配置向导"
+      },
+      {
+        "title": "营销设置"
+      },
+      {
+        "title": "企业微信设置"
+      },
+      {
+        "title": "质检设置"
+      }
+    ]
+  },
+  {
+    "title": "AI平台管理",
+    "children": [
+      {
+        "title": "Agent Studio",
+        "children": [
+          {
+            "title": "Agents"
+          },
+          {
+            "title": "Agent场景库"
+          },
+          {
+            "title": "Agent操作库"
+          }
+        ]
+      },
+      {
+        "title": "操作中心"
+      },
+      {
+        "title": "提示词模板"
+      },
+      {
+        "title": "语义检索索引"
+      },
+      {
+        "title": "调用统计"
+      },
+      {
+        "title": "模型"
+      },
+      {
+        "title": "信任层"
+      },
+      {
+        "title": "审计和数据分析"
+      },
+      {
+        "title": "数字助理"
+      }
+    ]
+  }
+];
+        const plan1CompareData = [
+  {
+    "title": "设置",
+    "children": [
+      {
+        "title": "管理首页"
+      },
+      {
+        "title": "配置向导"
+      },
+      {
+        "title": "企业设置",
+        "children": [
+          {
+            "title": "企业信息"
+          },
+          {
+            "title": "域名"
+          },
+          {
+            "title": "语言设置"
+          },
+          {
+            "title": "区域设置"
+          },
+          {
+            "title": "财年设置"
+          },
+          {
+            "title": "货币设置"
+          },
+          {
+            "title": "工作时间"
+          },
+          {
+            "title": "假期"
+          },
+          {
+            "title": "系统偏好"
+          },
+          {
+            "title": "个性化推荐"
+          },
+          {
+            "title": "员工使用分析"
+          },
+          {
+            "title": "强制通知设置"
+          },
+          {
+            "title": "邮箱管理"
+          },
+          {
+            "title": "短信服务"
+          },
+          {
+            "title": "许可信息"
+          },
+          {
+            "title": "订阅提醒"
+          }
+        ]
+      },
+      {
+        "title": "安全设置",
+        "children": [
+          {
+            "title": "账号安全设置"
+          },
+          {
+            "title": "通讯录隐私"
+          },
+          {
+            "title": "单点登录"
+          },
+          {
+            "title": "身份提供商"
+          },
+          {
+            "title": "受信任设备"
+          },
+          {
+            "title": "水印设置"
+          },
+          {
+            "title": "合规性设置"
+          },
+          {
+            "title": "网络访问限制"
+          },
+          {
+            "title": "代码安全设置"
+          },
+          {
+            "title": "手机号隐私设置"
+          }
+        ]
+      },
+      {
+        "title": "数据迁移"
+      }
+    ]
+  },
+  {
+    "title": "管理",
+    "children": [
+      {
+        "title": "组织架构",
+        "children": [
+          {
+            "title": "用户"
+          },
+          {
+            "title": "部门"
+          },
+          {
+            "title": "通讯录设置"
+          },
+          {
+            "title": "通讯录隔离"
+          },
+          {
+            "title": "邀请审核"
+          },
+          {
+            "title": "多维度"
+          },
+          {
+            "title": "多组织"
+          },
+          {
+            "title": "用户功能设置"
+          },
+          {
+            "title": "员工设备"
+          },
+          {
+            "title": "用户组"
+          }
+        ]
+      },
+      {
+        "title": "角色权限",
+        "children": [
+          {
+            "title": "管理功能权限"
+          },
+          {
+            "title": "业务功能权限"
+          },
+          {
+            "title": "分管小组"
+          }
+        ]
+      },
+      {
+        "title": "数据权限",
+        "children": [
+          {
+            "title": "数据权限管理"
+          },
+          {
+            "title": "数据权限查询"
+          }
+        ]
+      },
+      {
+        "title": "数据",
+        "children": [
+          {
+            "title": "全部客户"
+          },
+          {
+            "title": "迁移工具"
+          },
+          {
+            "title": "回收站"
+          },
+          {
+            "title": "数据清洗"
+          },
+          {
+            "title": "数据初始化"
+          },
+          {
+            "title": "数据批量处理"
+          },
+          {
+            "title": "数据稽核"
+          },
+          {
+            "title": "数据归档"
+          }
+        ]
+      },
+      {
+        "title": "企业日志",
+        "children": [
+          {
+            "title": "审计日志"
+          },
+          {
+            "title": "登录日志"
+          },
+          {
+            "title": "异步任务监控"
+          },
+          {
+            "title": "业务日志"
+          },
+          {
+            "title": "函数日志"
+          },
+          {
+            "title": "导入导出记录"
+          },
+          {
+            "title": "流程日志"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "平台工具",
+    "children": [
+      {
+        "title": "应用管理",
+        "children": [
+          {
+            "title": "应用列表"
+          }
+        ]
+      },
+      {
+        "title": "功能设置",
+        "children": [
+          {
+            "title": "营销设置",
+            "children": [
+              {
+                "title": "营销费用管理"
+              },
+              {
+                "title": "企业预算管理"
+              },
+              {
+                "title": "忠诚度计划管理"
+              },
+              {
+                "title": "渠道准入管理",
+                "children": [
+                  {
+                    "title": "首页"
+                  },
+                  {
+                    "title": "营销招募"
+                  },
+                  {
+                    "title": "注册审核"
+                  },
+                  {
+                    "title": "浏览规定"
+                  },
+                  {
+                    "title": "资质完善"
+                  },
+                  {
+                    "title": "协议签约"
+                  }
+                ]
+              },
+              {
+                "title": "营销方案"
+              },
+              {
+                "title": "会员管理"
+              },
+              {
+                "title": "企微SCRM",
+                "children": [
+                  {
+                    "title": "SCRM配置向导"
+                  },
+                  {
+                    "title": "营销设置"
+                  },
+                  {
+                    "title": "企业微信设置"
+                  },
+                  {
+                    "title": "质检设置"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "目标规则"
+          },
+          {
+            "title": "销售设置",
+            "children": [
+              {
+                "title": "销售 Agent 管理",
+                "children": [
+                  {
+                    "title": "客户互动Agent"
+                  },
+                  {
+                    "title": "业务洞察Agent"
+                  },
+                  {
+                    "title": "内部会议Agent"
+                  },
+                  {
+                    "title": "方案生成器"
+                  }
+                ]
+              },
+              {
+                "title": "术语库"
+              },
+              {
+                "title": "市场活动管理"
+              },
+              {
+                "title": "工商企业搜索管理"
+              },
+              {
+                "title": "招投标管理"
+              },
+              {
+                "title": "线索和线索池管理"
+              },
+              {
+                "title": "客户和公海管理"
+              },
+              {
+                "title": "主数据管理"
+              },
+              {
+                "title": "工商信息设置"
+              },
+              {
+                "title": "智能评分评级管理",
+                "children": [
+                  {
+                    "title": "RFM规则"
+                  },
+                  {
+                    "title": "行为积分"
+                  },
+                  {
+                    "title": "线索智能打分管理"
+                  }
+                ]
+              },
+              {
+                "title": "企业风险管理",
+                "children": [
+                  {
+                    "title": "评分规则"
+                  },
+                  {
+                    "title": "预警通知"
+                  }
+                ]
+              },
+              {
+                "title": "企业风险策略管理",
+                "children": [
+                  {
+                    "title": "评级配置"
+                  },
+                  {
+                    "title": "自助评分"
+                  },
+                  {
+                    "title": "授信策略"
+                  },
+                  {
+                    "title": "监控规则配置"
+                  }
+                ]
+              },
+              {
+                "title": "商机管理"
+              },
+              {
+                "title": "预测规则设置"
+              },
+              {
+                "title": "销售记录管理"
+              },
+              {
+                "title": "合同管理"
+              },
+              {
+                "title": "收入管理",
+                "children": [
+                  {
+                    "title": "应收配置"
+                  },
+                  {
+                    "title": "回款配置"
+                  },
+                  {
+                    "title": "账单配置"
+                  }
+                ]
+              },
+              {
+                "title": "项目管理"
+              },
+              {
+                "title": "客户账户管理"
+              },
+              {
+                "title": "信用管理"
+              },
+              {
+                "title": "定价和交易管理",
+                "children": [
+                  {
+                    "title": "首页"
+                  },
+                  {
+                    "title": "商品/产品管理"
+                  },
+                  {
+                    "title": "CPQ配置"
+                  },
+                  {
+                    "title": "价格管理配置"
+                  },
+                  {
+                    "title": "促销与返利配置"
+                  },
+                  {
+                    "title": "交易相关的单据配置"
+                  }
+                ]
+              },
+              {
+                "title": "应付管理"
+              }
+            ]
+          },
+          {
+            "title": "物流与库存",
+            "children": [
+              {
+                "title": "发货"
+              },
+              {
+                "title": "库存"
+              },
+              {
+                "title": "物流服务"
+              }
+            ]
+          },
+          {
+            "title": "服务设置",
+            "children": [
+              {
+                "title": "服务记录类型"
+              },
+              {
+                "title": "服务人员查询类型"
+              },
+              {
+                "title": "资产管理"
+              },
+              {
+                "title": "工单管理"
+              },
+              {
+                "title": "服务通设置"
+              },
+              {
+                "title": "发送记录"
+              },
+              {
+                "title": "会话分析"
+              },
+              {
+                "title": "智能机器人"
+              },
+              {
+                "title": "呼叫中心"
+              }
+            ]
+          },
+          {
+            "title": "行业插件设置",
+            "children": [
+              {
+                "title": "医疗信息设置"
+              },
+              {
+                "title": "外销管理"
+              },
+              {
+                "title": "快消业务插件"
+              }
+            ]
+          },
+          {
+            "title": "渠道设置",
+            "children": [
+              {
+                "title": "经销商管理"
+              },
+              {
+                "title": "合作伙伴管理",
+                "children": [
+                  {
+                    "title": "合作伙伴设置"
+                  }
+                ]
+              },
+              {
+                "title": "渠道对账单"
+              },
+              {
+                "title": "订货通管理"
+              },
+              {
+                "title": "渠道通路管理"
+              },
+              {
+                "title": "渠道数据上报"
+              }
+            ]
+          },
+          {
+            "title": "协同办公设置",
+            "children": [
+              {
+                "title": "待办栏目配置"
+              },
+              {
+                "title": "日志模板管理"
+              },
+              {
+                "title": "日志查询统计"
+              },
+              {
+                "title": "日程管理"
+              },
+              {
+                "title": "日程同步"
+              },
+              {
+                "title": "分享管理"
+              },
+              {
+                "title": "任务与指令"
+              },
+              {
+                "title": "公告管理"
+              },
+              {
+                "title": "话题管理"
+              },
+              {
+                "title": "在线文档"
+              },
+              {
+                "title": "电子签章"
+              },
+              {
+                "title": "信息删除工具"
+              },
+              {
+                "title": "基本设置"
+              },
+              {
+                "title": "业务群设置"
+              },
+              {
+                "title": "服务号首页"
+              },
+              {
+                "title": "服务号管理"
+              },
+              {
+                "title": "审批模板管理"
+              },
+              {
+                "title": "审批角色管理"
+              },
+              {
+                "title": "审批查询统计"
+              },
+              {
+                "title": "表格管理"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "AI平台管理",
+        "children": [
+          {
+            "title": "Agent Studio",
+            "children": [
+              {
+                "title": "Agents"
+              },
+              {
+                "title": "Agent 技能库"
+              },
+              {
+                "title": "Agent 操作库"
+              },
+              {
+                "title": "Agent 评测"
+              }
+            ]
+          },
+          {
+            "title": "AI流管理"
+          },
+          {
+            "title": "操作中心"
+          },
+          {
+            "title": "提示词模板"
+          },
+          {
+            "title": "语义检索索引"
+          },
+          {
+            "title": "调用统计"
+          },
+          {
+            "title": "模型"
+          },
+          {
+            "title": "信任层"
+          },
+          {
+            "title": "审计和数据分析"
+          },
+          {
+            "title": "AI助理"
+          },
+          {
+            "title": "预测生成器",
+            "children": [
+              {
+                "title": "数据集管理"
+              },
+              {
+                "title": "模型管理"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "对象与规则",
+        "children": [
+          {
+            "title": "标准对象"
+          },
+          {
+            "title": "自定义对象"
+          },
+          {
+            "title": "大对象"
+          },
+          {
+            "title": "对象名称设置"
+          },
+          {
+            "title": "模板管理"
+          },
+          {
+            "title": "对象列表页自定义"
+          },
+          {
+            "title": "全局对象布局"
+          },
+          {
+            "title": "智能表单"
+          },
+          {
+            "title": "对象关系图"
+          },
+          {
+            "title": "标签"
+          },
+          {
+            "title": "通用选项集"
+          },
+          {
+            "title": "对象规则",
+            "children": [
+              {
+                "title": "对象变更"
+              },
+              {
+                "title": "转换规则"
+              },
+              {
+                "title": "映射规则"
+              },
+              {
+                "title": "评分规则"
+              },
+              {
+                "title": "业务规则"
+              }
+            ]
+          },
+          {
+            "title": "对象插件"
+          },
+          {
+            "title": "离线规则"
+          }
+        ]
+      },
+      {
+        "title": "翻译与本地化",
+        "children": [
+          {
+            "title": "翻译工作台"
+          },
+          {
+            "title": "数据翻译设置"
+          }
+        ]
+      },
+      {
+        "title": "流程与自动化",
+        "children": [
+          {
+            "title": "审批流"
+          },
+          {
+            "title": "业务流"
+          },
+          {
+            "title": "工作流"
+          },
+          {
+            "title": "流"
+          },
+          {
+            "title": "阶段推进器"
+          },
+          {
+            "title": "商机销售流程"
+          },
+          {
+            "title": "流程交接"
+          },
+          {
+            "title": "委托设置"
+          },
+          {
+            "title": "常用意见"
+          },
+          {
+            "title": "全局配置"
+          }
+        ]
+      },
+      {
+        "title": "页面与体验",
+        "children": [
+          {
+            "title": "CRM视图迁移"
+          },
+          {
+            "title": "主导航"
+          },
+          {
+            "title": "自定义页面"
+          },
+          {
+            "title": "CRM菜单"
+          },
+          {
+            "title": "CRM首页"
+          },
+          {
+            "title": "自定义菜单"
+          },
+          {
+            "title": "APP启动图"
+          },
+          {
+            "title": "侧边栏布局"
+          },
+          {
+            "title": "自定义登录页"
+          },
+          {
+            "title": "主题色"
+          }
+        ]
+      },
+      {
+        "title": "低代码开发",
+        "children": [
+          {
+            "title": "ModelJar管理"
+          },
+          {
+            "title": "自定义函数"
+          },
+          {
+            "title": "自定义组件"
+          },
+          {
+            "title": "自定义插件"
+          },
+          {
+            "title": "对象及字段API"
+          },
+          {
+            "title": "开发者证书"
+          },
+          {
+            "title": "开发Jar包管理"
+          },
+          {
+            "title": "事件监听管理"
+          },
+          {
+            "title": "开放接口"
+          },
+          {
+            "title": "事件回调设置"
+          },
+          {
+            "title": "计划任务"
+          },
+          {
+            "title": "H5集成插件"
+          },
+          {
+            "title": "函数监控"
+          }
+        ]
+      },
+      {
+        "title": "集成与开放",
+        "children": [
+          {
+            "title": "集成流编排"
+          },
+          {
+            "title": "授权配置"
+          },
+          {
+            "title": "运行监控"
+          },
+          {
+            "title": "连接器市场"
+          }
+        ]
+      },
+      {
+        "title": "门户与渠道",
+        "children": [
+          {
+            "title": "站点管理",
+            "children": [
+              {
+                "title": "域名管理"
+              },
+              {
+                "title": "素材管理"
+              },
+              {
+                "title": "站点门户"
+              }
+            ]
+          },
+          {
+            "title": "渠道门户",
+            "children": [
+              {
+                "title": "自定义首页"
+              },
+              {
+                "title": "自定义登录页"
+              },
+              {
+                "title": "自定义菜单页"
+              },
+              {
+                "title": "Web端自定义页面"
+              },
+              {
+                "title": "移动端自定义页面"
+              },
+              {
+                "title": "导航设置"
+              }
+            ]
+          },
+          {
+            "title": "互联管理",
+            "children": [
+              {
+                "title": "互联用户"
+              },
+              {
+                "title": "互联角色"
+              },
+              {
+                "title": "互联应用"
+              },
+              {
+                "title": "互联设置"
+              },
+              {
+                "title": "上游信息"
+              }
+            ]
+          },
+          {
+            "title": "微信服务号"
+          },
+          {
+            "title": "微信小程序"
+          },
+          {
+            "title": "互联组织管理",
+            "children": [
+              {
+                "title": "互联组织"
+              },
+              {
+                "title": "通用设置"
+              }
+            ]
+          },
+          {
+            "title": "互联更改集",
+            "children": [
+              {
+                "title": "部署管理"
+              },
+              {
+                "title": "部署记录"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "环境",
+        "children": [
+          {
+            "title": "沙盒"
+          },
+          {
+            "title": "更改集",
+            "children": [
+              {
+                "title": "入站更改集"
+              },
+              {
+                "title": "出站更改集"
+              }
+            ]
+          },
+          {
+            "title": "部署",
+            "children": [
+              {
+                "title": "部署设置"
+              },
+              {
+                "title": "部署状态"
+              }
+            ]
+          },
+          {
+            "title": "配置包",
+            "children": [
+              {
+                "title": "配置包管理"
+              },
+              {
+                "title": "配置包安装"
+              }
+            ]
+          },
+          {
+            "title": "系统资源概览"
+          },
+          {
+            "title": "全局变量"
+          }
+        ]
+      }
+    ]
+  }
+];
+        const plan1Meta = {
+  "groupCount": 3,
+  "nodeCount": 304,
+  "leafCount": 256,
+  "maxDepth": 5,
+  "translatedCount": 299,
+  "fallbackCount": 5,
+  "source": "优化菜单（方案一）.xlsx",
+  "sheet": "管理后台菜单（方案一）"
+};
+
+        const i18n = {
+            zh: { htmlLang: 'zh-CN', back: '<i class="ph ph-caret-left"></i> 返回', brand: '管理后台', planBadge: '方案一', headerHint: '基于方案一的中英双语菜单演示', languageLabel: '中文', languageAria: '切换语言', searchPlaceholder: '搜索菜单', empty: '暂无菜单数据', noResults: '没有匹配的菜单', pageTitle: '菜单优化（方案一）- 更新版', pageSubtitle: '基于 Excel 生成的中英双语后台菜单演示', sourceText: '来源：优化菜单（方案一）.xlsx', groupLabel: '一级分类', groupDesc: '方案一保留设置、管理、平台工具三条主路径。', nodeLabel: '菜单节点', nodeDesc: '展示方案一 Excel 中全部菜单节点。', leafLabel: '末级入口', leafDesc: '可直接点击选中的菜单入口数量。', depthLabel: '最大层级', depthDesc: '当前菜单树的最深层级。', topPathTitle: '方案一主路径', coverageTitle: '双语覆盖', translatedLabel: '已有英文', fallbackLabel: '中文回退', coverageHint: '英文列为空的菜单会在英文视图中继续显示中文，避免入口缺失。' },
+            en: { htmlLang: 'en', back: '<i class="ph ph-caret-left"></i> Back', brand: 'Admin Console', planBadge: 'Plan 1', headerHint: 'Bilingual menu demo based on Plan 1', languageLabel: 'EN', languageAria: 'Switch language', searchPlaceholder: 'Search menu', empty: 'No menu data', noResults: 'No matching menu items', pageTitle: 'Menu Optimization (Plan 1) - Updated', pageSubtitle: 'Bilingual admin menu demo generated from Excel', sourceText: 'Source: 优化菜单（方案一）.xlsx', groupLabel: 'Top Groups', groupDesc: 'Plan 1 keeps Settings, Management, and Platform Tools as primary paths.', nodeLabel: 'Menu Nodes', nodeDesc: 'All menu nodes parsed from the Plan 1 Excel source.', leafLabel: 'Leaf Entries', leafDesc: 'Selectable final-level menu entries.', depthLabel: 'Max Depth', depthDesc: 'Deepest level in the current menu tree.', topPathTitle: 'Primary Paths', coverageTitle: 'Bilingual Coverage', translatedLabel: 'English available', fallbackLabel: 'Chinese fallback', coverageHint: 'Items without English text stay visible with their Chinese names in English mode.' }
+        };
+
+        let currentLang = localStorage.getItem('plan1-menu-language') || 'zh';
+        let searchTerm = '';
+        let activeHighlightTitle = null;
+        const ignoreList = ['互联平台管理', 'AI平台管理'];
+
+        function escapeAttr(value) { return String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
+        function getTitle(item, lang = currentLang) { return item[lang] || item.zh || item.en || ''; }
+        function countNodes(nodes) { return nodes.reduce((sum, node) => sum + 1 + countNodes(node.children || []), 0); }
+        function getIconClass(item, level) {
+            const raw = item.zh || item.en || item.title || '';
+            const text = `${raw} ${item.en || ''}`.toLowerCase();
+            if (level === 1) return 'ph-squares-four';
+            if (text.includes('首页') || text.includes('home')) return 'ph-house';
+            if (text.includes('安全') || text.includes('security')) return 'ph-shield-check';
+            if (text.includes('企业') || text.includes('company')) return 'ph-buildings';
+            if (text.includes('组织') || text.includes('员工') || text.includes('user') || text.includes('employee')) return 'ph-users';
+            if (text.includes('权限') || text.includes('角色') || text.includes('role') || text.includes('permission')) return 'ph-user-circle-gear';
+            if (text.includes('语言') || text.includes('翻译') || text.includes('language') || text.includes('translation')) return 'ph-globe';
+            if (text.includes('互联') || text.includes('external') || text.includes('portal')) return 'ph-plugs-connected';
+            if (text.includes('应用') || text.includes('app')) return 'ph-app-window';
+            if (text.includes('agent') || text.includes('ai') || text.includes('模型') || text.includes('助理')) return 'ph-robot';
+            if (text.includes('日志') || text.includes('log') || text.includes('公告')) return 'ph-file-text';
+            if (text.includes('审批') || text.includes('流程') || text.includes('flow') || text.includes('process')) return 'ph-git-branch';
+            if (text.includes('数据') || text.includes('对象') || text.includes('data') || text.includes('object')) return 'ph-cube';
+            if (text.includes('平台') || text.includes('服务号') || text.includes('wechat')) return 'ph-chat-circle';
+            if (text.includes('设置') || text.includes('配置') || text.includes('管理') || text.includes('setting') || text.includes('manage')) return 'ph-wrench';
+            return 'ph-folder';
+        }
+        function nodeMatches(item, term) { if (!term) return true; return `${item.zh || item.title || ''} ${item.en || ''}`.toLowerCase().includes(term); }
+        function filterTree(items, term) { if (!term) return items; return items.reduce((acc, item) => { const children = item.children ? filterTree(item.children, term) : []; if (nodeMatches(item, term) || children.length) acc.push({ ...item, children }); return acc; }, []); }
+        function renderBilingualMenu(items, level = 1) {
+            if (!items || !items.length) return `<div class="${searchTerm ? 'no-results' : 'menu-empty'}">${i18n[currentLang][searchTerm ? 'noResults' : 'empty']}</div>`;
+            if (level === 1) return items.map((group) => `<div class="menu-group"><div class="menu-title" title="${escapeAttr(getTitle(group))}">${escapeAttr(getTitle(group))}</div>${group.children ? renderBilingualMenu(group.children, 2) : ''}</div>`).join('');
+            return `<ul class="menu-list level-${level}">${items.map((item) => { const hasChildren = item.children && item.children.length; const title = escapeAttr(getTitle(item)); const original = escapeAttr(item.zh || item.en || ''); const iconClass = level === 2 ? getIconClass(item, level) : 'ph-circle list-dot'; const expanded = searchTerm && hasChildren ? ' expanded-item' : ''; const submenu = searchTerm && hasChildren ? ' expanded' : ''; return `<li class="menu-li"><div class="menu-item${expanded} ${hasChildren ? 'has-children' : ''}" onclick="togglePlanMenu(this)" data-title="${original}"><i class="ph ${iconClass}"></i><span class="menu-text" title="${title}">${title}</span>${hasChildren ? '<i class="ph ph-caret-right chevron"></i>' : ''}</div>${hasChildren ? `<div class="menu-submenu${submenu}"><div class="menu-submenu-inner">${renderBilingualMenu(item.children, level + 1)}</div></div>` : ''}</li>`; }).join('')}</ul>`;
+        }
+        function togglePlanMenu(element) { if (element.classList.contains('has-children')) { element.classList.toggle('expanded-item'); element.nextElementSibling?.classList.toggle('expanded'); return; } document.querySelectorAll('#dynamic-menu .menu-item').forEach((item) => item.classList.remove('active')); element.classList.add('active'); }
+        function renderTopPaths() { document.getElementById('top-path-list').innerHTML = plan1MenuData.map((item) => `<li title="${escapeAttr(getTitle(item))}"><i class="ph ph-check-circle"></i><span>${escapeAttr(getTitle(item))}</span></li>`).join(''); }
+        function renderPlan() { document.getElementById('dynamic-menu').innerHTML = renderBilingualMenu(filterTree(plan1MenuData, searchTerm)); renderTopPaths(); }
+        function fillStats() { document.getElementById('group-count').textContent = plan1Meta.groupCount; document.getElementById('node-count').textContent = plan1Meta.nodeCount; document.getElementById('leaf-count').textContent = plan1Meta.leafCount; document.getElementById('depth-count').textContent = plan1Meta.maxDepth; document.getElementById('translated-count').textContent = plan1Meta.translatedCount; document.getElementById('fallback-count').textContent = plan1Meta.fallbackCount; const total = Math.max(plan1Meta.nodeCount, 1); document.getElementById('translated-bar').style.width = `${Math.round(plan1Meta.translatedCount / total * 100)}%`; document.getElementById('fallback-bar').style.width = `${Math.round(plan1Meta.fallbackCount / total * 100)}%`; document.getElementById('fallback-bar').style.background = 'linear-gradient(90deg,#ff8300 0%,#e6a23c 100%)'; }
+        function applyLanguage() { const copy = i18n[currentLang]; document.documentElement.lang = copy.htmlLang; document.documentElement.dataset.lang = currentLang; document.querySelectorAll('[data-i18n]').forEach((node) => { const key = node.dataset.i18n; if (copy[key]) node.innerHTML = copy[key]; }); document.getElementById('language-label').textContent = copy.languageLabel; document.getElementById('language-toggle').setAttribute('aria-label', copy.languageAria); document.getElementById('menu-search').placeholder = copy.searchPlaceholder; document.title = copy.pageTitle; renderPlan(); }
+
+        function buildPathMap(nodes, prefix, map, isRoot = true, isIgnored = false) { nodes.forEach((node) => { const ignored = isIgnored || ignoreList.includes(node.title); const currentPath = isRoot ? '' : (prefix ? `${prefix} > ${node.title}` : node.title); if (!isRoot && !ignored) { if (!map[node.title]) map[node.title] = []; map[node.title].push(currentPath); } if (node.children) buildPathMap(node.children, currentPath, map, false, ignored); }); }
+        function buildChanges() { const hist = {}, opt = {}, changes = { moved: [], added: [], deleted: [] }; buildPathMap(historyMenuData, '', hist, true); buildPathMap(plan1CompareData, '', opt, true); Object.keys(hist).forEach((title) => { const hp = hist[title], op = opt[title]; if (!op) { changes.deleted.push(title); return; } if (hp.some((p) => !op.includes(p)) || op.some((p) => !hp.includes(p))) changes.moved.push(title); }); Object.keys(opt).forEach((title) => { if (!hist[title]) changes.added.push(title); }); return changes; }
+        const changes = buildChanges();
+        function getHighlightClass(title, type) { if (changes.moved.includes(title)) return 'changed-moved'; if (type === 'opt' && changes.added.includes(title)) return 'changed-added'; if (type === 'hist' && changes.deleted.includes(title)) return 'changed-deleted'; return ''; }
+        function renderCompareMenu(items, level = 1, type = 'hist') { if (!items || !items.length) return '<div class="menu-empty">暂无菜单数据</div>'; if (level === 1) return items.map((group) => `<div class="menu-group"><div class="menu-title" title="${escapeAttr(group.title)}">${escapeAttr(group.title)}</div>${group.children ? renderCompareMenu(group.children, 2, type) : ''}</div>`).join(''); return `<ul class="menu-list level-${level}">${items.map((item) => { const hasChildren = item.children && item.children.length; const title = escapeAttr(item.title); const iconClass = level === 2 ? getIconClass({ title: item.title }, level) : 'ph-circle list-dot'; return `<li class="menu-li"><div class="menu-item ${getHighlightClass(item.title, type)} ${hasChildren ? 'has-children' : ''}" onclick="toggleCompareMenu(this, '${title}')" data-title="${title}"><i class="ph ${iconClass}"></i><span class="menu-text" title="${title}">${title}</span>${hasChildren ? '<i class="ph ph-caret-right chevron"></i>' : ''}</div>${hasChildren ? `<div class="menu-submenu"><div class="menu-submenu-inner">${renderCompareMenu(item.children, level + 1, type)}</div></div>` : ''}</li>`; }).join('')}</ul>`; }
+        function clearLines() { document.getElementById('lines-overlay').innerHTML = ''; }
+        function drawLineFor(title) { if (!title || !changes.moved.includes(title)) return; const svg = document.getElementById('lines-overlay'); svg.innerHTML = ''; const safe = CSS.escape(title); const hEls = document.querySelectorAll(`#menu-hist .menu-item.changed-moved[data-title="${safe}"]`); const oEls = document.querySelectorAll(`#menu-opt .menu-item.changed-moved[data-title="${safe}"]`); hEls.forEach((h) => oEls.forEach((o) => { if (h.offsetParent === null || o.offsetParent === null) return; const sr = svg.getBoundingClientRect(), hr = h.getBoundingClientRect(), or = o.getBoundingClientRect(); const sx = hr.right - sr.left, sy = hr.top - sr.top + hr.height / 2, ex = or.left - sr.left, ey = or.top - sr.top + or.height / 2; const path = document.createElementNS('http://www.w3.org/2000/svg', 'path'); path.setAttribute('d', `M ${sx} ${sy} C ${sx + (ex - sx) * .4} ${sy}, ${sx + (ex - sx) * .6} ${ey}, ${ex} ${ey}`); path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#ff8300'); path.setAttribute('stroke-width', '4'); path.setAttribute('class', 'diff-line line-active'); svg.appendChild(path); })); }
+        function redrawActiveLine() { if (activeHighlightTitle) drawLineFor(activeHighlightTitle); }
+        function toggleCompareMenu(element, title) { document.querySelectorAll('#compare-view .menu-item').forEach((item) => item.classList.remove('active')); document.querySelectorAll(`#compare-view .menu-item[data-title="${CSS.escape(title)}"]`).forEach((item) => item.classList.add('active')); const hasChildren = element.classList.contains('has-children'); if (hasChildren) { element.classList.toggle('expanded-item'); element.nextElementSibling?.classList.toggle('expanded'); } setTimeout(() => { if (changes.moved.includes(title)) { activeHighlightTitle = title; drawLineFor(title); } else { activeHighlightTitle = null; clearLines(); } }, hasChildren ? 305 : 0); }
+        function bindCompareSearch(inputId, menuId) { const input = document.getElementById(inputId), menu = document.getElementById(menuId); input.addEventListener('input', () => { const keyword = input.value.trim().toLowerCase(); menu.querySelectorAll('.menu-li').forEach((li) => { const item = li.querySelector(':scope > .menu-item'); const descendants = Array.from(li.querySelectorAll('.menu-item')); const matched = descendants.some((el) => (el.dataset.title || '').toLowerCase().includes(keyword)); li.style.display = !keyword || matched ? '' : 'none'; if (keyword && matched && item?.classList.contains('has-children')) { item.classList.add('expanded-item'); item.nextElementSibling?.classList.add('expanded'); } }); redrawActiveLine(); }); }
+        function initCompare() { document.getElementById('menu-hist').innerHTML = renderCompareMenu(historyMenuData, 1, 'hist'); document.getElementById('menu-opt').innerHTML = renderCompareMenu(plan1CompareData, 1, 'opt'); document.getElementById('hist-node-total').textContent = countNodes(historyMenuData); document.getElementById('plan-node-total').textContent = countNodes(plan1CompareData); document.getElementById('moved-total').textContent = `(${changes.moved.length})`; document.getElementById('added-total').textContent = `(${changes.added.length})`; document.getElementById('deleted-total').textContent = `(${changes.deleted.length})`; bindCompareSearch('hist-search', 'menu-hist'); bindCompareSearch('opt-search', 'menu-opt'); document.getElementById('menu-hist').addEventListener('scroll', redrawActiveLine); document.getElementById('menu-opt').addEventListener('scroll', redrawActiveLine); window.addEventListener('resize', redrawActiveLine); }
+        function switchView(view) { document.querySelectorAll('.view-tab').forEach((button) => button.classList.toggle('active', button.dataset.view === view)); document.getElementById('plan-view').classList.toggle('active', view === 'plan'); document.getElementById('compare-view').classList.toggle('active', view === 'compare'); clearLines(); setTimeout(redrawActiveLine, 80); }
+
+        document.getElementById('language-toggle').addEventListener('click', () => { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('plan1-menu-language', currentLang); applyLanguage(); });
+        document.getElementById('menu-search').addEventListener('input', (event) => { searchTerm = event.target.value.trim().toLowerCase(); renderPlan(); });
+        document.querySelectorAll('.view-tab').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+        fillStats(); applyLanguage(); initCompare();
+    </script>
+</body>
+</html>
