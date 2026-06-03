@@ -1,0 +1,154 @@
+/* We import the base styles, then override mapping features */
+.comparison-layout {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    --sidebar-width: 300px;
+}
+
+#lines-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.badge-title {
+    font-size: 10px;
+    background: #e4e7ed;
+    color: #606266;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    font-weight: 500;
+}
+
+.opt-badge {
+    background: #fef4e5;
+    color: #ff8300;
+}
+
+.relativez {
+    position: relative;
+    z-index: 50;
+    background: rgba(241, 243, 248, 0.7);
+    backdrop-filter: blur(4px);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.comparison-dash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 50px;
+}
+
+.center-title {
+    text-align: center;
+}
+
+.mt-2 { margin-top: 8px; }
+.mt-5 { margin-top: 40px; }
+
+.comparison-stats {
+    grid-template-columns: repeat(2, 200px);
+    justify-content: center;
+}
+
+.diff-legend {
+    background: #fff;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    z-index: 50;
+    width: 300px;
+}
+
+.diff-legend h4 {
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.legend-row {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-regular);
+    margin-bottom: 8px;
+}
+
+.legend-row .box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 8px;
+}
+
+.color-moved { background: #ff8300; }
+.color-added { background: #409eff; }
+.color-deleted { background: #f56c6c; }
+
+/* Changed highlight overrides */
+
+.changed-moved {
+    background-color: rgba(255, 131, 0, 0.08) !important;
+    border-left: 3px solid #ff8300;
+    padding-left: 9px !important; /* Offset border width if level 1 but we handle via JS safely */
+}
+.changed-moved .menu-text {
+    color: #ff8300 !important;
+    font-weight: 600;
+}
+.changed-moved i:first-child {
+    color: #ff8300 !important;
+}
+
+.changed-added {
+    background-color: rgba(64, 158, 255, 0.08) !important;
+    border-left: 3px solid #409eff;
+}
+.changed-added .menu-text {
+    color: #409eff !important;
+    font-weight: 600;
+}
+.changed-added i:first-child {
+    color: #409eff !important;
+}
+
+.changed-deleted {
+    background-color: rgba(245, 108, 108, 0.08) !important;
+    border-left: 3px solid #f56c6c;
+}
+.changed-deleted .menu-text {
+    color: #f56c6c !important;
+    text-decoration: line-through;
+}
+.changed-deleted i:first-child {
+    color: #f56c6c !important;
+}
+
+/* SVG Line Classes */
+.diff-line {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    pointer-events: visibleStroke;
+}
+
+.line-inactive {
+    stroke: #e4e7ed !important;
+    stroke-width: 1px !important;
+    opacity: 0.3;
+}
+
+.line-active {
+    stroke: #ff8300 !important;
+    stroke-width: 4px !important;
+    filter: drop-shadow(0px 0px 6px rgba(255,131,0,0.6));
+}
